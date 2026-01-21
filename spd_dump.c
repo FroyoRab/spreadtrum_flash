@@ -13,107 +13,25 @@
 void print_help(void) {
 	DBG_LOG(
 		"Usage\n"
-		"\tspd_dump [OPTIONS] [COMMANDS] [EXIT COMMANDS]\n"
-		"\nExamples\n"
-		"\tOne-line mode\n"
-		"\t\tspd_dump --wait 300 fdl /path/to/fdl1 fdl1_addr fdl /path/to/fdl2 fdl2_addr exec path savepath r all_lite reset\n"
-		"\tInteractive mode\n"
-		"\t\tspd_dump --wait 300 fdl /path/to/fdl1 fdl1_addr fdl /path/to/fdl2 fdl2_addr exec\n"
-		"\tThen the prompt should display FDL2>.\n"
+		"\tspd_dump [OPTIONS]\n"
+		"\nThis build runs a fixed batch sequence on every detected device:\n"
+		"\tfdl fdl1-sign.bin 0x5500\n"
+		"\tfdl fdl2-sign.bin 0x9efffe00\n"
+		"\texec\n"
+		"\tw splloader splloader.bin\n"
+		"\tw vbmeta vbmeta.img\n"
+		"\tw boot boot.img\n"
+		"\treset\n"
 	);
 	DBG_LOG(
 		"\nOptions\n"
-		"\t--wait <seconds>\n"
-		"\t\tSpecifies the time to wait for the device to connect.\n"
-		"\t--stage <number>|-r|--reconnect\n"
-		"\t\tTry to reconnect device in brom/fdl1/fdl2 stage. Any number behaves the same way.\n"
-		"\t\t(unstable, a device in brom/fdl1 stage can be reconnected infinite times, but only once in fdl2 stage)\n"
+		"\t--wait <seconds> [count]\n"
+		"\t\tSpecifies the time to wait for devices to connect. When count is set,\n"
+		"\t\tcontinue only after that many devices are detected.\n"
 		"\t--verbose <level>\n"
 		"\t\tSets the verbosity level of the output (supports 0, 1, or 2).\n"
-		"\t--kick\n"
-		"\t\tConnects the device using the route boot_diag -> cali_diag -> dl_diag.\n"
-		"\t--kickto <mode>\n"
-		"\t\tConnects the device using a custom route boot_diag -> custom_diag. Supported modes are 0-127.\n"
-		"\t\t(mode 0 is `kickto 2` on ums9621, mode 1 = cali_diag, mode 2 = dl_diag; not all devices support mode 2).\n"
 		"\t-?|-h|--help\n"
 		"\t\tShow help and usage information\n"
-	);
-	DBG_LOG(
-		"\nRuntime Commands\n"
-		"\tverbose level\n"
-		"\t\tSets the verbosity level of the output (supports 0, 1, or 2).\n"
-		"\ttimeout ms\n"
-		"\t\tSets the command timeout in milliseconds.\n"
-		"\tbaudrate [rate]\n\t\t(Windows SPRD driver only, and brom/fdl2 stage only)\n"
-		"\t\tSupported baudrates are 57600, 115200, 230400, 460800, 921600, 1000000, 2000000, 3250000, and 4000000.\n"
-		"\t\tWhile in u-boot/littlekernel source code, only 115200, 230400, 460800, and 921600 are listed.\n"
-		"\texec_addr [addr]\n\t\t(brom stage only)\n"
-		"\t\tSends custom_exec_no_verify_addr.bin to the specified memory address to bypass the signature verification by brom for splloader/fdl1.\n"
-		"\t\tUsed for CVE-2022-38694.\n"
-		"\tfdl FILE addr\n"
-		"\t\tSends a file (splloader, fdl1, fdl2, sml, trustos, teecfg) to the specified memory address.\n"
-		"\tloadexec FILE(addr_in_name)\n"
-		"\t\tSet exec_addr with the address encoded in filename and save exec_file path.\n"
-		"\tloadfdl FILE(addr_in_name)\n"
-		"\t\tLoad FDL file to the address encoded in filename.\n"
-		"\texec\n"
-		"\t\tExecutes a sent file in the fdl1 stage. Typically used with sml or fdl2 (also known as uboot/lk).\n"
-		"\tpath [save_location]\n"
-		"\t\tChanges the save directory for commands like r, read_part(s), read_flash, and read_mem.\n"
-		"\tnand_id [id]\n"
-		"\t\tSpecifies the 4th NAND ID, affecting read_part(s) size calculation, default value is 0x15.\n"
-		"\trawdata {0,1,2}\n\t\t(fdl2 stage only)\n"
-		"\t\tRawdata protocol helps speed up `w` and `write_part(s)` commands, when rawdata > 0, `blk_size` will not effect write speed.\n"
-		"\t\t(rawdata relays on u-boot/lk, so don't set it manually.\n"
-		"\tblk_size byte\n\t\t(fdl2 stage only)\n"
-		"\t\tSets the block size, with a maximum of 65535 bytes. This option helps speed up `r`, `w`,`read_part(s)` and `write_part(s)` commands.\n"
-		"\tr all|part_name|part_id\n"
-		"\t\tWhen the partition table is available:\n"
-		"\t\t\tr all: full backup (excludes blackbox, cache, userdata)\n"
-		"\t\t\tr all_lite: full backup (excludes inactive slot partitions, blackbox, cache, and userdata)\n"
-		"\t\t\tall/all_lite is not usable on NAND\n"
-		"\t\tWhen the partition table is unavailable:\n"
-		"\t\t\tr will auto-calculate part size (supports emmc/ufs and NAND).\n"
-		"\tread_part part_name|part_id offset size FILE\n"
-		"\t\tReads a specific partition to a file at the given offset and size.\n"
-		"\t\t(read ubi on nand) read_part system 0 ubi40m system.bin\n"
-		"\tread_parts partition_list_file\n"
-		"\t\tReads partitions from a list file (If the file name starts with \"ubi\", the size will be calculated using the NAND ID).\n"
-		"\tw|write_part part_name|part_id FILE\n"
-		"\t\tWrites the specified file to a partition.\n"
-		"\twrite_parts|write_parts_a|write_parts_b save_location\n"
-		"\t\tWrites all partitions dumped by read_parts.\n"
-		"\twof part_name offset FILE\n"
-		"\t\tWrites the specified file to a partition at the given offset.\n"
-		"\twov part_name offset VALUE\n"
-		"\t\tWrites the specified value (max is 0xFFFFFFFF) to a partition at the given offset.\n"
-		"\te|erase_part part_name|part_id\n"
-		"\t\tErases the specified partition.\n"
-		"\terase_all\n"
-		"\t\tErases all partitions. Use with caution!\n"
-		"\tpartition_list FILE\n"
-		"\t\tRead the partition list on emmc/ufs, not all fdl2 supports this command.\n"
-		"\trepartition partition_list_xml\n"
-		"\t\tRepartitions based on partition list XML.\n"
-		"\tp|print\n"
-		"\t\tPrints partition_list\n"
-		"\tsize_part|part_size part_name\n"
-		"\t\tDisplays the size of the specified partition.\n"
-		"\tcheck_part part_name\n"
-		"\t\tChecks if the specified partition exists.\n"
-		"\tverity {0,1}\n"
-		"\t\tEnables or disables dm-verity on android 10(+).\n"
-		"\tset_active {a,b}\n"
-		"\t\tSets the active slot on VAB devices.\n"
-		"\tfirstmode mode_id\n"
-		"\t\tSets the mode the device will enter after reboot.\n"
-	);
-	DBG_LOG(
-		"\nExit Commands\n"
-		"\treboot-recovery\n\t\tFDL2 only\n"
-		"\treboot-fastboot\n\t\tFDL2 only\n"
-		"\treset\n\t\tFDL2 and new FDL1\n"
-		"\tpoweroff\n\t\tFDL2 and new FDL1\n"
 	);
 }
 
@@ -129,18 +47,27 @@ int fdl1_loaded = 0;
 int fdl2_executed = 0;
 int selected_ab = -1;
 uint64_t fblk_size = 0;
-int main(int argc, char **argv) {
+static void reset_runtime_state(void) {
+	fdl1_loaded = 0;
+	fdl2_executed = 0;
+	selected_ab = -1;
+	gpt_failed = 1;
+	fblk_size = 0;
+	memset(&Da_Info, 0, sizeof(Da_Info));
+	memset(&gPartInfo, 0, sizeof(gPartInfo));
+	memset(savepath, 0, sizeof(savepath));
+}
+
+static int run_batch_sequence(int argc, char **argv, int wait, int verbose) {
 	spdio_t *io = NULL; int ret, i, in_quote;
-	int wait = 30 * REOPEN_FREQ;
 	int argcount = 0, stage = -1, nand_id = DEFAULT_NAND_ID;
 	int nand_info[3];
 	int keep_charge = 1, end_data = 1, blk_size = 0, skip_confirm = 1, highspeed = 0, exec_addr_v2 = 0;
 	unsigned exec_addr = 0, baudrate = 0;
-	char *temp;
-	char str1[(ARGC_MAX - 1) * ARGV_LEN];
 	char **str2;
 	char *execfile;
 	int bootmode = -1, at = 0, async = 1;
+	const useconds_t command_delay_us = 200000;
 #if !USE_LIBUSB
 	extern DWORD curPort;
 	DWORD *ports;
@@ -152,6 +79,7 @@ int main(int argc, char **argv) {
 	if (!execfile) ERR_EXIT("malloc failed\n");
 
 	io = spdio_init(0);
+	io->verbose = verbose;
 #if USE_LIBUSB
 #ifdef __ANDROID__
 	int xfd = -1; // This store termux gived fd
@@ -169,52 +97,6 @@ int main(int argc, char **argv) {
 #endif
 	DBG_LOG("branch:%s, sha1:%s\n", GIT_VER, GIT_SHA1);
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	while (argc > 1) {
-		if (!strcmp(argv[1], "--wait")) {
-			if (argc <= 2) ERR_EXIT("bad option\n");
-			wait = atoi(argv[2]) * REOPEN_FREQ;
-			argc -= 2; argv += 2;
-		}
-		else if (!strcmp(argv[1], "--verbose")) {
-			if (argc <= 2) ERR_EXIT("bad option\n");
-			io->verbose = atoi(argv[2]);
-			argc -= 2; argv += 2;
-		}
-		else if (!strcmp(argv[1], "--stage")) {
-			if (argc <= 2) ERR_EXIT("bad option\n");
-			stage = 99;
-			argc -= 2; argv += 2;
-		}
-		else if (strstr(argv[1], "-r")) {
-			stage = 99;
-			argc -= 1; argv += 1;
-		}
-		else if (strstr(argv[1], "help") || strstr(argv[1], "-h") || strstr(argv[1], "-?")) {
-			print_help();
-			return 0;
-#ifdef __ANDROID__
-		}
-		else if (!strcmp(argv[1], "--usb-fd")) { // Termux spec
-			if (argc <= 2) ERR_EXIT("bad option\n");
-			xfd = atoi(argv[argc - 1]);
-			argc -= 2; argv += 1;
-#endif
-		}
-		else if (!strcmp(argv[1], "--kick")) {
-			at = 1;
-			argc -= 1; argv += 1;
-		}
-		else if (!strcmp(argv[1], "--kickto")) {
-			if (argc <= 2) ERR_EXIT("bad option\n");
-			bootmode = strtol(argv[2], NULL, 0); at = 0;
-			argc -= 2; argv += 2;
-		}
-		else if (!strcmp(argv[1], "--sync")) {
-			async = 0;
-			argc -= 1; argv += 1;
-		}
-		else break;
-	}
 #if defined(_MYDEBUG) && defined(USE_LIBUSB)
 	io->verbose = 2;
 #endif
@@ -406,68 +288,23 @@ int main(int argc, char **argv) {
 	if (fdl1_loaded == -1) argc += 2;
 	if (fdl2_executed == -1) argc += 1;
 	while (1) {
-		if (argc > 1) {
-			str2 = (char **)malloc(argc * sizeof(char *));
-			if (fdl1_loaded == -1) {
-				save_argv = argv;
-				str2[1] = "loadfdl";
-				str2[2] = "0x0";
-			}
-			else if (fdl2_executed == -1) {
-				if (!save_argv) save_argv = argv;
-				str2[1] = "exec";
-			}
-			else {
-				if (save_argv) { argv = save_argv; save_argv = NULL; }
-				for (i = 1; i < argc; i++) str2[i] = argv[i];
-			}
-			argcount = argc;
-			in_quote = -1;
+		if (argc <= 1) break;
+		str2 = (char **)malloc(argc * sizeof(char *));
+		if (fdl1_loaded == -1) {
+			save_argv = argv;
+			str2[1] = "loadfdl";
+			str2[2] = "0x0";
+		}
+		else if (fdl2_executed == -1) {
+			if (!save_argv) save_argv = argv;
+			str2[1] = "exec";
 		}
 		else {
-			char ifs = '"';
-			str2 = (char **)malloc(ARGC_MAX * sizeof(char *));
-			memset(str1, 0, sizeof(str1));
-			argcount = 0;
-			in_quote = 0;
-
-			if (fdl2_executed > 0)
-				DBG_LOG("FDL2 >");
-			else if (fdl1_loaded > 0)
-				DBG_LOG("FDL1 >");
-			else
-				DBG_LOG("BROM >");
-			ret = scanf("%[^\n]", str1);
-			while ('\n' != getchar());
-
-			temp = strtok(str1, " ");
-			while (temp) {
-				if (!in_quote) {
-					argcount++;
-					if (argcount == ARGC_MAX) break;
-					str2[argcount] = (char *)malloc(ARGV_LEN);
-					if (!str2[argcount]) ERR_EXIT("malloc failed\n");
-					memset(str2[argcount], 0, ARGV_LEN);
-				}
-				if (temp[0] == '\'') ifs = '\'';
-				if (temp[0] == ifs) {
-					in_quote = 1;
-					temp += 1;
-				}
-				else if (in_quote) {
-					strcat(str2[argcount], " ");
-				}
-
-				if (temp[strlen(temp) - 1] == ifs) {
-					in_quote = 0;
-					temp[strlen(temp) - 1] = 0;
-				}
-
-				strcat(str2[argcount], temp);
-				temp = strtok(NULL, " ");
-			}
-			argcount++;
+			if (save_argv) { argv = save_argv; save_argv = NULL; }
+			for (i = 1; i < argc; i++) str2[i] = argv[i];
 		}
+		argcount = argc;
+		in_quote = -1;
 		if (argcount == 1) {
 			str2[1] = malloc(1);
 			if (str2[1]) str2[1][0] = '\0';
@@ -1328,11 +1165,143 @@ rloop:
 			for (i = 1; i < argcount; i++)
 				free(str2[i]);
 		free(str2);
+		if (command_delay_us) usleep(command_delay_us);
 		if (m_bOpened == -1) {
 			DBG_LOG("device removed, exiting...\n");
 			break;
 		}
 	}
 	spdio_free(io);
+	return 0;
+}
+
+static int count_ports(void) {
+#if USE_LIBUSB
+	libusb_device **ports = FindPort(0x4d00);
+	int count = 0;
+	if (!ports) return 0;
+	for (libusb_device **port = ports; *port != NULL; port++) count++;
+	libusb_free_device_list(ports, 1);
+	return count;
+#else
+	DWORD *ports = FindPort("SPRD U2S Diag");
+	int count = 0;
+	if (!ports) return 0;
+	for (DWORD *port = ports; *port != 0; port++) count++;
+	free(ports);
+	return count;
+#endif
+}
+
+static int wait_for_ports(int wait, int verbose, int target_count) {
+#if USE_LIBUSB
+	int i;
+	if (libusb_init(NULL) < 0) return 0;
+	for (i = 0; ; i++) {
+		if (!(i % 2)) {
+			int found = count_ports();
+			if (found >= target_count) break;
+		}
+		if (i >= wait) return 0;
+		if (verbose) {
+			int found = count_ports();
+			DBG_LOG("Waiting for devices... %.1fs (%d/%d)\n", (float)i / REOPEN_FREQ, found, target_count);
+		}
+		usleep(1000000 / REOPEN_FREQ);
+	}
+	libusb_exit(NULL);
+#else
+	int i;
+	for (i = 0; ; i++) {
+		if (!(i % 2)) {
+			int found = count_ports();
+			if (found >= target_count) break;
+		}
+		if (i >= wait) return 0;
+		if (verbose) {
+			int found = count_ports();
+			DBG_LOG("Waiting for devices... %.1fs (%d/%d)\n", (float)i / REOPEN_FREQ, found, target_count);
+		}
+		usleep(1000000 / REOPEN_FREQ);
+	}
+#endif
+	return 1;
+}
+
+int main(int argc, char **argv) {
+	int wait = 30 * REOPEN_FREQ;
+	int target_count = 1;
+	int verbose = 0;
+	char *batch_argv[] = {
+		"spd_dump",
+		"fdl", "fdl1-sign.bin", "0x5500",
+		"fdl", "fdl2-sign.bin", "0x9efffe00",
+		"exec",
+		"w", "splloader", "splloader.bin",
+		"w", "vbmeta", "vbmeta.img",
+		"w", "boot", "boot.img",
+		"reset"
+	};
+	int batch_argc = (int)(sizeof(batch_argv) / sizeof(batch_argv[0]));
+#if !USE_LIBUSB
+	extern DWORD curPort;
+	DWORD *ports = NULL;
+#else
+	extern libusb_device *curPort;
+	libusb_device **ports = NULL;
+#endif
+
+	while (argc > 1) {
+		if (!strcmp(argv[1], "--wait")) {
+			if (argc <= 2) ERR_EXIT("bad option\n");
+			wait = atoi(argv[2]) * REOPEN_FREQ;
+			if (argc > 3 && argv[3][0] != '-') {
+				target_count = atoi(argv[3]);
+				if (target_count <= 0) ERR_EXIT("bad wait count\n");
+				argc -= 3; argv += 3;
+			}
+			else {
+				argc -= 2; argv += 2;
+			}
+		}
+		else if (!strcmp(argv[1], "--verbose")) {
+			if (argc <= 2) ERR_EXIT("bad option\n");
+			verbose = atoi(argv[2]);
+			argc -= 2; argv += 2;
+		}
+		else if (strstr(argv[1], "help") || strstr(argv[1], "-h") || strstr(argv[1], "-?")) {
+			print_help();
+			return 0;
+		}
+		else {
+			print_help();
+			return 1;
+		}
+	}
+
+	if (!wait_for_ports(wait, verbose, target_count)) ERR_EXIT("find port failed\n");
+#if USE_LIBUSB
+	ports = FindPort(0x4d00);
+	if (!ports) ERR_EXIT("find port failed\n");
+	for (libusb_device **port = ports; *port != NULL; port++) {
+		reset_runtime_state();
+		curPort = *port;
+		m_bOpened = 0;
+		run_batch_sequence(batch_argc, batch_argv, wait, verbose);
+		curPort = NULL;
+	}
+	libusb_free_device_list(ports, 1);
+#else
+	ports = FindPort("SPRD U2S Diag");
+	if (!ports) ERR_EXIT("find port failed\n");
+	for (DWORD *port = ports; *port != 0; port++) {
+		reset_runtime_state();
+		curPort = *port;
+		m_bOpened = 0;
+		run_batch_sequence(batch_argc, batch_argv, wait, verbose);
+		curPort = 0;
+	}
+	free(ports);
+#endif
 	return 0;
 }
